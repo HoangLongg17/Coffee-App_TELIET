@@ -8,32 +8,28 @@ interface Props {
   onConfirm: (date: Date) => void;
 }
 
-function roundUpToNextQuarter(d: Date) {
-  const copy = new Date(d);
-  const minutes = copy.getMinutes();
-  const remainder = minutes % 15;
-  if (remainder !== 0) {
-    copy.setMinutes(minutes + (15 - remainder), 0, 0);
-  } else {
-    // nếu đúng mốc, giữ nguyên giây = 0
-    copy.setSeconds(0, 0);
-  }
-  return copy;
-}
-
 function pad(n: number) {
   return n < 10 ? `0${n}` : `${n}`;
 }
 
 export default function MealTimePicker({ visible, onClose, onConfirm }: Props) {
-  const now = useMemo(() => new Date(), [visible]); // tái tạo khi mở modal
-  const start = useMemo(() => roundUpToNextQuarter(now), [now]);
+  const now = useMemo(() => new Date(), [visible]);
+
+  // Mốc đầu tiên: trong 15 phút
+  const start = useMemo(() => {
+    const d = new Date(now.getTime() + 15 * 60000);
+    d.setSeconds(0, 0);
+    return d;
+  }, [now]);
+
+  // Giới hạn cuối cùng trong ngày: 23:00
   const end = useMemo(() => {
     const e = new Date(now);
-    e.setHours(23, 0, 0, 0); // tối đa 23:00 cùng ngày
+    e.setHours(23, 0, 0, 0);
     return e;
   }, [now]);
 
+  // Các mốc: từ start, mỗi bước 15 phút
   const timeSlots = useMemo(() => {
     const slots: Date[] = [];
     let cur = new Date(start);
@@ -46,7 +42,7 @@ export default function MealTimePicker({ visible, onClose, onConfirm }: Props) {
 
   const [selected, setSelected] = useState<Date>(start);
   const router = useRouter();
-  // reset lựa chọn khi reopen modal
+
   useEffect(() => {
     if (visible) {
       setSelected(start);
@@ -54,74 +50,71 @@ export default function MealTimePicker({ visible, onClose, onConfirm }: Props) {
   }, [visible, start]);
 
   const labelToday = "Hôm nay";
-  const labelWindow = "Trong 15 phút đến 23:00";
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={styles.container}>
+          {/* Nút đóng */}
+          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+            <Text style={styles.closeText}>✕</Text>
+          </TouchableOpacity>
+
           <Text style={styles.title}>Đặt Thời Gian Dùng Bữa Của Bạn</Text>
 
-          {/* Ngày và Giờ chỉ là tiêu đề */}
-        <View style={styles.row}>
-        <View style={{ flex: 1, marginRight: 4 }}>
-            <Text style={styles.sectionLabel}>Ngày</Text>
-            <Text style={styles.selectText}>{labelToday}</Text>
-        </View>
-        <View style={{ flex: 1, marginLeft: 4 }}>
-            <Text style={styles.sectionLabel}>Giờ</Text>
-        </View>
-        </View>
+          {/* Ngày và Giờ */}
+          <View style={styles.row}>
+            <View style={{ flex: 1, marginRight: 4 }}>
+              <Text style={styles.sectionLabel}>Ngày</Text>
+              <Text style={styles.selectText}>{labelToday}</Text>
+            </View>
+            <View style={{ flex: 1, marginLeft: 4 }}>
+              <Text style={styles.sectionLabel}>Giờ</Text>
+            </View>
+          </View>
 
-        {/* Danh sách giờ cuộn với bước 15p */}
-        <View style={styles.listWrapper}>
-        <ScrollView style={{ maxHeight: 280 }}>
-            {/* Mốc đầu tiên: Trong 15 phút */}
-            <TouchableOpacity
-            style={[styles.timeItem, selected.getTime() === start.getTime() && styles.timeItemSelected]}
-            onPress={() => setSelected(start)}
-            >
-            <Text style={[styles.timeText, selected.getTime() === start.getTime() && styles.timeTextSelected]}>
-                Trong 15 phút
-            </Text>
-            </TouchableOpacity>
+          {/* Danh sách giờ */}
+          <View style={styles.listWrapper}>
+            <ScrollView style={{ maxHeight: 280 }}>
+              {timeSlots.map((slot, index) => {
+                const hh = pad(slot.getHours());
+                const mm = pad(slot.getMinutes());
+                const isSelected = selected.getTime() === slot.getTime();
+                const label = index === 0 ? "Trong 15 phút" : `${hh}:${mm}`;
+                return (
+                  <TouchableOpacity
+                    key={slot.getTime()}
+                    style={[styles.timeItem, isSelected && styles.timeItemSelected]}
+                    onPress={() => setSelected(slot)}
+                  >
+                    <Text style={[styles.timeText, isSelected && styles.timeTextSelected]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
 
-            {timeSlots.map((slot) => {
-            const hh = pad(slot.getHours());
-            const mm = pad(slot.getMinutes());
-            const isSelected = selected.getTime() === slot.getTime();
-            return (
-                <TouchableOpacity
-                key={slot.getTime()}
-                style={[styles.timeItem, isSelected && styles.timeItemSelected]}
-                onPress={() => setSelected(slot)}
-                >
-                <Text style={[styles.timeText, isSelected && styles.timeTextSelected]}>
-                    {hh}:{mm}
-                </Text>
-                </TouchableOpacity>
-            );
-            })}
-        </ScrollView>
-        </View>
-
-
-          {/* Hiển thị giờ đã chọn lớn */}
+          {/* Hiển thị giờ đã chọn */}
           <Text style={styles.timeDisplay}>
             {pad(selected.getHours())}:{pad(selected.getMinutes())}
           </Text>
 
-            <TouchableOpacity style={styles.confirmButton} onPress={() => {
-                onConfirm(selected); // lưu thời gian đã chọn
-                onClose();           // đóng modal
-                router.push({
+          {/* Nút xác nhận */}
+          <TouchableOpacity
+            style={styles.confirmButton}
+            onPress={() => {
+              onConfirm(selected);
+              onClose();
+              router.push({
                 pathname: "/checkout",
-                params: { time: selected.toISOString() }, // truyền thời gian sang màn checkout
-                });
+                params: { time: selected.toISOString() },
+              });
             }}
-            >
+          >
             <Text style={styles.confirmText}>ĐẶT THỜI GIAN</Text>
-            </TouchableOpacity>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -140,6 +133,17 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
   },
+  closeBtn: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 10,
+  },
+  closeText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#B22222",
+  },
   title: {
     fontSize: 16,
     fontWeight: "bold",
@@ -150,19 +154,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 12,
-  },
-  selectBox: {
-    flex: 1,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    marginHorizontal: 4,
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
-  disabledBox: {
-    opacity: 0.9,
   },
   selectText: {
     fontSize: 14,
@@ -216,10 +207,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   sectionLabel: {
-  fontSize: 13,
-  fontWeight: "600",
-  color: "#666",
-  marginBottom: 4,
-  marginLeft: 4,
- },
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 4,
+    marginLeft: 4,
+  },
 });

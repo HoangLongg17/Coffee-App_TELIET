@@ -14,11 +14,10 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState("");
 
   const handleRegister = async () => {
-    if (!fullName || !email || !password) {
-      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin bắt buộc");
+    if (!fullName || !email || !password || !phone) {
+      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin");
       return;
     }
-
     try {
       // Đăng ký bằng Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -35,9 +34,15 @@ export default function RegisterScreen() {
       Alert.alert("Chúc mừng", "Bạn đã đăng ký thành công", [
         { text: "OK", onPress: () => router.push("/login") }
       ]);
-    } catch (error: any) {
-      Alert.alert("Lỗi", error.message || "Đăng ký thất bại");
-    }
+      } catch (error: any) {
+        if (error.code === "auth/email-already-in-use") {
+          Alert.alert("Lỗi", "Email này đã được sử dụng. Vui lòng chọn email khác.");
+        } else if (error.code === "auth/invalid-email") {
+          Alert.alert("Lỗi", "Địa chỉ email không hợp lệ.");
+        } else {
+          Alert.alert("Lỗi", error.message || "Đăng ký thất bại");
+        }
+      }
   };
 
   return (
@@ -71,7 +76,7 @@ export default function RegisterScreen() {
       />
 
       <TextInput
-        placeholder="Số điện thoại (không bắt buộc)"
+        placeholder="Số điện thoại"
         value={phone}
         onChangeText={setPhone}
         keyboardType="phone-pad"

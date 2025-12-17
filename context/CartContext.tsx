@@ -8,6 +8,7 @@ export interface CartItem {
   quantity: number;
   note?: string;
   unitPrice: number; // đơn giá, thay vì price tổng
+  isGift?: boolean; // để phân biệt món quà
 }
 
 export interface Promotion {

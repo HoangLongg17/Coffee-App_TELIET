@@ -100,13 +100,17 @@ export default function CheckoutScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-      <TouchableOpacity onPress={() => router.back()}>
-        <Text style={styles.closeButton}>✕</Text>
-      </TouchableOpacity>
-      <Text style={styles.headerTitle}>Xác Nhận</Text>
-      <TouchableOpacity onPress={handleClearCart}>
-        <Text style={styles.clearButton}>Xóa giỏ hàng</Text>
-      </TouchableOpacity>
+        {/* Nút X bên trái */}
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.closeButton}>✕</Text>
+        </TouchableOpacity>
+
+        {/* Bên phải: giữ độ rộng cố định để cân đối */}
+        <View style={{ minWidth: 80, alignItems: "flex-end" }}>
+          <TouchableOpacity onPress={handleClearCart}>
+            <Text style={styles.clearButton}>Xóa giỏ hàng</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Cửa hàng */}
@@ -251,15 +255,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     backgroundColor: "#fff",
-  },
-  headerTitle: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    textAlign: "center",
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
   },
   closeButton: { fontSize: 20, fontWeight: "bold", color: "#B22222" },
   clearButton: {

@@ -36,21 +36,6 @@ export async function seedPromotions() {
       DiscountType: "fixed"
     },
     {
-      Title: "Miễn phí giao hàng nội thành",
-      Description: "Đơn từ 80K sẽ được miễn phí giao hàng trong khu vực nội thành.",
-      DiscountAmount: 0,
-      MinOrderValue: 80000,
-      ImageBase64: "",
-      Terms: [
-        "Chỉ áp dụng cho giao dịch được đặt thông qua ứng dụng.",
-        "Không áp dụng đồng thời với các chương trình khuyến mãi khác."
-      ],
-      ExpiryDate: "2025-12-15",
-      IsActive: true,
-      ApplyMethod: "manual",
-      DiscountType: "fixed"
-    },
-    {
       Title: "Giảm 20% cho sản phẩm Freeze",
       Description: "Tất cả sản phẩm Freeze được giảm 20% trong tuần này.",
       DiscountAmount: 20,
@@ -70,7 +55,7 @@ export async function seedPromotions() {
     DiscountAmount: null,
     MinQuantity: 3,
     GiftQuantity: 1,
-    GiftProductIds: ["4QpjDKAbCoPQnePkuiH8", "7Ee0xP1w7NdDKGsgRt2y"],
+    GiftProductIds: ["JnWExzNjVwcHVnl5ryrZ", "2tGLWDZuzoiA3fwUCwKJ"],
     ImageBase64: "",
     Terms: [
       "Chỉ áp dụng cho giao dịch được đặt thông qua ứng dụng.",

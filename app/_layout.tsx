@@ -1,6 +1,7 @@
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { DeliveryProvider } from "@/context/DeliveryContext";
+import { LoadingProvider } from "@/context/LoadingContext";
 import { StoreProvider } from "@/context/StoreContext";
 import { Stack } from "expo-router";
 
@@ -10,7 +11,9 @@ export default function Layout() {
       <CartProvider>
         <StoreProvider>
           <DeliveryProvider>
-            <Stack screenOptions={{ headerShown: false }} />
+            <LoadingProvider>
+              <Stack screenOptions={{ headerShown: false }} />
+            </LoadingProvider>
           </DeliveryProvider>
         </StoreProvider>
       </CartProvider>

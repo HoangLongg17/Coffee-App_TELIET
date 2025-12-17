@@ -5,7 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface Product {
@@ -33,9 +33,11 @@ export default function PromotionFilterScreen() {
   const { id } = useLocalSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [promo, setPromo] = useState<Promotion | null>(null);
-  const [selectedItems, setSelectedItems] = useState<{ id: string; qty: number }[]>([]);
+  const [selectedItems, setSelectedItems] = useState<
+  { id: string; qty: number; size: "S" | "M" | "L" }[]
+  >([]);
   const { addToCart, setAppliedPromotion } = useCart();
-
+  const [selectedSize, setSelectedSize] = useState<"S" | "M" | "L">("M");
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
@@ -54,24 +56,23 @@ export default function PromotionFilterScreen() {
     const existing = selectedItems.find(i => i.id === productId);
     if (existing) {
       setSelectedItems(
-        selectedItems.map(i => (i.id === productId ? { ...i, qty: i.qty + 1 } : i))
+        selectedItems.map(i =>
+          i.id === productId ? { ...i, qty: i.qty + 1 } : i
+        )
       );
     } else {
-      setSelectedItems([...selectedItems, { id: productId, qty: 1 }]);
+      setSelectedItems([...selectedItems, { id: productId, qty: 1, size: "M" }]);
     }
   };
-
   const handleRemove = (productId: string) => {
     setSelectedItems(selectedItems.filter(i => i.id !== productId));
   };
 
   const totalValue = selectedItems.reduce((sum, i) => {
-    const p = products.find(p => p.id === i.id);
-    return sum + (p?.Sizes?.M ?? 0) * i.qty;
+  const p = products.find(p => p.id === i.id);
+  return sum + (p?.Sizes?.[i.size] ?? 0) * i.qty;
   }, 0);
-
   const totalQty = selectedItems.reduce((sum, i) => sum + i.qty, 0);
-
   const pushSelectedToCart = () => {
     selectedItems.forEach((i) => {
       const p = products.find(p => p.id === i.id);
@@ -80,8 +81,8 @@ export default function PromotionFilterScreen() {
           id: p.id,
           name: String(p.Name ?? ""),
           image: p.ImageBase64,
-          size: "M",
-          unitPrice: p.Sizes?.M ?? 0,
+          size: i.size,
+          unitPrice: p.Sizes?.[i.size] ?? 0,
           quantity: i.qty,
         });
       }
@@ -108,9 +109,10 @@ export default function PromotionFilterScreen() {
       id: giftProduct.id,
       name: String(giftProduct.Name ?? ""),
       image: giftProduct.ImageBase64,
-      size: "M",
+      size: "S",
       unitPrice: 0,
       quantity: promo.GiftQuantity ?? 1,
+      isGift: true,
     });
     }
       setAppliedPromotion(promo); router.replace("/order");
@@ -201,47 +203,74 @@ return (
         {/* Sản phẩm đã chọn */}
         <View style={styles.selectedBox}>
           <Text style={styles.subTitle}>Đã chọn:</Text>
-          {selectedItems.map((i) => {
-            const p = products.find(p => p.id === i.id);
-            return (
-              <View key={i.id} style={styles.selectedItem}>
-                <Text style={styles.selectedName}>{String(p?.Name ?? "")}</Text>
-                <View style={styles.qtyControls}>
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => {
-                      if (i.qty > 1) {
+          <ScrollView style={{ maxHeight: 150 }}>
+            {selectedItems.map((i) => {
+              const p = products.find(p => p.id === i.id);
+              return (
+                <View key={i.id} style={styles.selectedItem}>
+                  {/* Tên sản phẩm */}
+                  <Text style={styles.selectedName}>{String(p?.Name ?? "")}</Text>
+
+                  {/* Chọn size */}
+                  <View style={styles.sizeRow}>
+                    {(["S","M","L"] as const).map(s => (
+                      <TouchableOpacity
+                        key={s}
+                        onPress={() =>
+                          setSelectedItems(selectedItems.map(si =>
+                            si.id === i.id ? { ...si, size: s } : si
+                          ))
+                        }
+                        style={[
+                          styles.sizeBox,
+                          i.size === s && styles.sizeBoxSelected
+                        ]}
+                      >
+                        <Text style={{ color: i.size === s ? "#B22222" : "#333" }}>
+                          {`${s} - ${(p?.Sizes?.[s] ?? 0).toLocaleString("vi-VN")} ₫`}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {/* Controls số lượng */}
+                  <View style={styles.qtyControls}>
+                    <TouchableOpacity
+                      style={styles.qtyBtn}
+                      onPress={() => {
+                        if (i.qty > 1) {
+                          setSelectedItems(
+                            selectedItems.map(si =>
+                              si.id === i.id ? { ...si, qty: si.qty - 1 } : si
+                            )
+                          );
+                        } else {
+                          setSelectedItems(selectedItems.filter(si => si.id !== i.id));
+                        }
+                      }}
+                    >
+                      <Text style={styles.qtyText}>-</Text>
+                    </TouchableOpacity>
+
+                    <Text style={styles.qtyNumber}>{i.qty}</Text>
+
+                    <TouchableOpacity
+                      style={styles.qtyBtn}
+                      onPress={() =>
                         setSelectedItems(
                           selectedItems.map(si =>
-                            si.id === i.id ? { ...si, qty: si.qty - 1 } : si
+                            si.id === i.id ? { ...si, qty: si.qty + 1 } : si
                           )
-                        );
-                      } else {
-                        setSelectedItems(selectedItems.filter(si => si.id !== i.id));
-                      }
-                    }}
-                  >
-                    <Text style={styles.qtyText}>-</Text>
-                  </TouchableOpacity>
-
-                  <Text style={styles.qtyNumber}>{i.qty}</Text>
-
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() =>
-                      setSelectedItems(
-                        selectedItems.map(si =>
-                          si.id === i.id ? { ...si, qty: si.qty + 1 } : si
                         )
-                      )
-                    }
-                  >
-                    <Text style={styles.qtyText}>+</Text>
-                  </TouchableOpacity>
+                      }
+                    >
+                      <Text style={styles.qtyText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })}
+          </ScrollView>
         </View>
 
         {/* Tổng cộng */}
@@ -267,24 +296,32 @@ return (
 
     {/* Bước 2: chọn quà */}
     {step === "selectGift" && promo?.DiscountType === "gift" && Array.isArray(promo.GiftProductIds) && (
-      <View style={{ padding: 16 }}>
-        <Text style={styles.subTitle}>Chọn sản phẩm tặng:</Text>
-        {promo.GiftProductIds.map(id => {
-          const giftProduct = products.find(p => p.id === id);
-          const isSelected = selectedGift === id;
-          return giftProduct ? (
-            <TouchableOpacity
-              key={id}
-              onPress={() => setSelectedGift(id)}
-              style={[styles.giftOption, isSelected && styles.giftOptionSelected]}
-            >
-              <Text style={styles.note}>{String(giftProduct?.Name ?? "")}</Text>
-            </TouchableOpacity>
-          ) : null;
-        })}
-      </View>
+    <View style={{ padding: 16 }}>
+      <Text style={styles.subTitle}>Chọn sản phẩm tặng:</Text>
+      {promo.GiftProductIds.map(id => {
+        const giftProduct = products.find(p => p.id === id);
+        const isSelected = selectedGift === id;
+        return giftProduct ? (
+          <TouchableOpacity
+            key={id}
+            onPress={() => setSelectedGift(id)}
+            style={[styles.giftOption, isSelected && styles.giftOptionSelected]}
+          >
+            {/* Ảnh sản phẩm */}
+            {giftProduct.ImageBase64 && (
+              <Image
+                source={{ uri: giftProduct.ImageBase64 }}
+                style={{ width: 60, height: 60, borderRadius: 8, marginRight: 12 }}
+                resizeMode="cover"
+              />
+            )}
+            {/* Tên sản phẩm */}
+            <Text style={styles.note}>{String(giftProduct?.Name ?? "")}</Text>
+          </TouchableOpacity>
+        ) : null;
+      })}
+    </View>
     )}
-
     {/* Nút xác nhận */}
     <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm}>
       <Text style={{ color: "#fff", fontWeight: "bold" }}>
@@ -311,12 +348,36 @@ const styles = StyleSheet.create({
   subTitle: { fontSize: 14, fontWeight: "600", marginBottom: 8 },
   selectedBox: { padding: 16, borderTopWidth: 1, borderColor: "#eee" },
   selectedItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+    flexDirection: "column",   // ✅ đổi từ "row" sang "column"
+    alignItems: "flex-start",  // ✅ căn trái cho gọn
+    marginBottom: 12,          // ✅ khoảng cách vừa phải giữa các item
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderColor: "#eee",
   },
-  selectedName: { fontSize: 14, flex: 1, marginRight: 12 },
+  selectedName: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 6,           // ✅ cách tên với block size
+  },
+  sizeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",          // ✅ cho phép xuống dòng nếu chật
+    marginBottom: 6,
+  },
+  sizeBox: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 4,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  sizeBoxSelected: {
+    borderColor: "#B22222",
+    backgroundColor: "#ffecec",
+  },
   qtyControls: { flexDirection: "row", alignItems: "center" },
   qtyBtn: {
     width: 28,
